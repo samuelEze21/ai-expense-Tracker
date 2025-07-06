@@ -122,6 +122,9 @@ export const AuthProvider = ({ children }) => {
         payload: res.data.data
       });
       
+      // Set the auth token BEFORE calling loadUser
+      setAuthToken(res.data.data.token);
+      
       loadUser();
       return { success: true, message: res.data.message };
     } catch (err) {
