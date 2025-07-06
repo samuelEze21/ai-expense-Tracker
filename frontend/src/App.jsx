@@ -5,6 +5,7 @@ import 'react-toastify/dist/ReactToastify.css';
 
 import { AuthProvider } from './context/AuthContext.jsx';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
+import Homepage from './pages/Homepage.jsx';
 import Login from './pages/Login.jsx';
 import Register from './pages/Register.jsx';
 import Dashboard from './pages/Dashboard.jsx';
@@ -15,7 +16,7 @@ function App() {
       <Router>
         <div className="App">
           <Routes>
-            <Route path="/" element={<Navigate to="/dashboard" replace />} />
+            <Route path="/" element={<Homepage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route 
@@ -26,7 +27,7 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           
           <ToastContainer
