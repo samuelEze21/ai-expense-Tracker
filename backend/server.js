@@ -6,23 +6,28 @@ const connectDB = require('./config/db');
 // Load env vars
 dotenv.config();
 
-// Connect to database only if not in test environment
-if (process.env.NODE_ENV !== 'test') {
-  connectDB();
-}
+// Connect to database
+connectDB();
 
 const app = express();
 
-// Middleware
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? 'your-frontend-domain.com' : 'http://localhost:3000',
+// CORS configuration
+const corsOptions = {
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'your-frontend-domain.com' 
+    : 'http://localhost:3000', // Changed from 3001 to 3000
   credentials: true
-}));
+};
+
+app.use(cors(corsOptions));
+
+// Body parser middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/expenses', require('./routes/expenses'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -41,14 +46,10 @@ app.use('*', (req, res) => {
   });
 });
 
-const PORT = process.env.PORT || 5001;
+const PORT = process.env.PORT || 5000;
 
-// Only start server if not in test environment
-if (process.env.NODE_ENV !== 'test') {
-  app.listen(PORT, () => {
-    console.log(`Server running in ${process.env.NODE_ENV} mode on port ${PORT}`);
-  });
-}
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
 
-// Export app for testing
 module.exports = app;
