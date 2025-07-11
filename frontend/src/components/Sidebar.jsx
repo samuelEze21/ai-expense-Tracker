@@ -51,9 +51,15 @@ const Sidebar = ({ isOpen, setIsOpen }) => {
           <div className={`flex items-center justify-between h-16 px-6 border-b ${
             isDarkMode ? 'border-slate-700' : 'border-gray-200'
           }`}>
-            <h1 className={`text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent`}>
-              ExpenseTracker
-            </h1>
+            <Link 
+              to="/" 
+              className="transition-opacity hover:opacity-80"
+              onClick={() => setIsOpen(false)}
+            >
+              <h1 className={`text-xl font-bold bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent`}>
+                ExpenseTracker
+              </h1>
+            </Link>
             <button
               onClick={() => setIsOpen(false)}
               className="lg:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-slate-800"
