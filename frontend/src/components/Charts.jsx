@@ -17,30 +17,52 @@ import {
   ResponsiveContainer
 } from 'recharts';
 import { useTheme } from '../context/ThemeContext.jsx';
+import { useExpense } from '../context/ExpenseContext.jsx';
 
 const Charts = () => {
   const { isDarkMode } = useTheme();
+  const { expenses } = useExpense();
 
-  // Sample data
-  const monthlyData = [
-    { month: 'Jan', expenses: 2400, income: 4000 },
-    { month: 'Feb', expenses: 1398, income: 3000 },
-    { month: 'Mar', expenses: 9800, income: 2000 },
-    { month: 'Apr', expenses: 3908, income: 2780 },
-    { month: 'May', expenses: 4800, income: 1890 },
-    { month: 'Jun', expenses: 3800, income: 2390 },
-    { month: 'Jul', expenses: 4300, income: 3490 }
-  ];
+  // Don't render if no expenses
+  if (!expenses || expenses.length === 0) {
+    return null;
+  }
 
-  const categoryData = [
-    { name: 'Food & Dining', value: 400, color: '#8884d8' },
-    { name: 'Transportation', value: 300, color: '#82ca9d' },
-    { name: 'Shopping', value: 300, color: '#ffc658' },
-    { name: 'Entertainment', value: 200, color: '#ff7300' },
-    { name: 'Bills & Utilities', value: 150, color: '#00ff88' }
-  ];
+  // Process real expense data for charts
+  const processMonthlyData = () => {
+    const monthlyExpenses = {};
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      if (!monthlyExpenses[monthKey]) {
+        monthlyExpenses[monthKey] = { month: monthName, expenses: 0 };
+      }
+      monthlyExpenses[monthKey].expenses += expense.amount;
+    });
+    
+    return Object.values(monthlyExpenses).slice(-6); // Last 6 months
+  };
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const processCategoryData = () => {
+    const categoryTotals = {};
+    expenses.forEach(expense => {
+      if (!categoryTotals[expense.category]) {
+        categoryTotals[expense.category] = 0;
+      }
+      categoryTotals[expense.category] += expense.amount;
+    });
+    
+    return Object.entries(categoryTotals).map(([name, value]) => ({
+      name,
+      value: parseFloat(value.toFixed(2))
+    }));
+  };
+
+  const monthlyData = processMonthlyData();
+  const categoryData = processCategoryData();
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8', '#82ca9d'];
 
   const chartTheme = {
     textColor: isDarkMode ? '#e2e8f0' : '#374151',
@@ -49,7 +71,7 @@ const Charts = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
       {/* Monthly Trends */}
       <div className={`
         rounded-2xl p-6 transition-all duration-300
@@ -70,10 +92,6 @@ const Charts = () => {
                 <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
                 <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
               </linearGradient>
-              <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
-              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.gridColor} />
             <XAxis dataKey="month" stroke={chartTheme.textColor} />
@@ -92,13 +110,6 @@ const Charts = () => {
               stroke="#8884d8"
               fillOpacity={1}
               fill="url(#colorExpenses)"
-            />
-            <Area
-              type="monotone"
-              dataKey="income"
-              stroke="#82ca9d"
-              fillOpacity={1}
-              fill="url(#colorIncome)"
             />
           </AreaChart>
         </ResponsiveContainer>
@@ -142,39 +153,6 @@ const Charts = () => {
               }}
             />
           </PieChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Weekly Spending */}
-      <div className={`
-        lg:col-span-2 rounded-2xl p-6 transition-all duration-300
-        ${isDarkMode 
-          ? 'bg-slate-800 border border-slate-700' 
-          : 'bg-white border border-gray-200 shadow-lg'
-        }
-      `}>
-        <h3 className={`text-lg font-semibold mb-4 ${
-          isDarkMode ? 'text-white' : 'text-gray-900'
-        }`}>
-          Weekly Spending Comparison
-        </h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={monthlyData}>
-            <CartesianGrid strokeDasharray="3 3" stroke={chartTheme.gridColor} />
-            <XAxis dataKey="month" stroke={chartTheme.textColor} />
-            <YAxis stroke={chartTheme.textColor} />
-            <Tooltip 
-              contentStyle={{
-                backgroundColor: chartTheme.backgroundColor,
-                border: `1px solid ${chartTheme.gridColor}`,
-                borderRadius: '8px',
-                color: chartTheme.textColor
-              }}
-            />
-            <Legend />
-            <Bar dataKey="expenses" fill="#8884d8" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="income" fill="#82ca9d" radius={[4, 4, 0, 0]} />
-          </BarChart>
         </ResponsiveContainer>
       </div>
     </div>

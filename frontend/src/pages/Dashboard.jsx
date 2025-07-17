@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Plus, TrendingUp, BarChart3 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useExpense } from '../context/ExpenseContext.jsx';
 import Sidebar from '../components/Sidebar.jsx';
@@ -10,14 +12,56 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDarkMode } = useTheme();
   const { expenses, loading, getExpenses, error } = useExpense();
+  const navigate = useNavigate();
 
   // Load expenses when dashboard mounts
   useEffect(() => {
-    getExpenses(); // Changed from loadExpenses to getExpenses
+    getExpenses();
   }, [getExpenses]);
+
+  // Check if user has any expenses
+  const hasExpenses = expenses && expenses.length > 0;
 
   // Get recent transactions (last 5)
   const recentTransactions = expenses.slice(0, 5);
+
+  // Empty state component
+  const EmptyState = () => (
+    <div className={`
+      flex flex-col items-center justify-center py-16 px-6 text-center
+      ${isDarkMode ? 'text-slate-300' : 'text-gray-600'}
+    `}>
+      <div className={`
+        w-24 h-24 rounded-full mb-6 flex items-center justify-center
+        ${isDarkMode ? 'bg-slate-700' : 'bg-gray-100'}
+      `}>
+        <TrendingUp className={`w-12 h-12 ${
+          isDarkMode ? 'text-slate-400' : 'text-gray-400'
+        }`} />
+      </div>
+      <h3 className={`text-2xl font-semibold mb-4 ${
+        isDarkMode ? 'text-white' : 'text-gray-900'
+      }`}>
+        No expenses yet
+      </h3>
+      <p className={`text-lg mb-8 max-w-md ${
+        isDarkMode ? 'text-slate-400' : 'text-gray-500'
+      }`}>
+        Start tracking your expenses to see insights, charts, and analytics about your spending habits.
+      </p>
+      <button
+        onClick={() => navigate('/add-expense')}
+        className="
+          inline-flex items-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600
+          text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-purple-700
+          transition-all duration-300 transform hover:scale-105 shadow-lg
+        "
+      >
+        <Plus className="w-5 h-5 mr-2" />
+        Add Your First Expense
+      </button>
+    </div>
+  );
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -40,72 +84,73 @@ const Dashboard = () => {
             </div>
           )}
           
-          {/* Summary Cards */}
-          <SummaryCards />
-          
-          {/* Charts */}
-          <Charts />
-          
-          {/* Recent Transactions */}
-          <div className={`
-            mt-8 rounded-2xl p-6 transition-all duration-300
-            ${isDarkMode 
-              ? 'bg-slate-800 border border-slate-700' 
-              : 'bg-white border border-gray-200 shadow-lg'
-            }
-          `}>
-            <h3 className={`text-lg font-semibold mb-4 ${
-              isDarkMode ? 'text-white' : 'text-gray-900'
-            }`}>
-              Recent Transactions
-            </h3>
-            <div className="space-y-4">
-              {loading ? (
-                <div className="text-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-500 mx-auto"></div>
-                  <p className={`mt-2 text-sm ${
-                    isDarkMode ? 'text-slate-400' : 'text-gray-500'
-                  }`}>Loading expenses...</p>
-                </div>
-              ) : recentTransactions.length > 0 ? (
-                recentTransactions.map((expense) => (
-                  <div key={expense._id} className={`
-                    flex items-center justify-between p-4 rounded-xl transition-colors
-                    ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
-                  `}>
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">💰</span>
-                      </div>
-                      <div>
-                        <p className={`font-medium ${
-                          isDarkMode ? 'text-white' : 'text-gray-900'
-                        }`}>
-                          {expense.title}
-                        </p>
-                        <p className={`text-sm ${
-                          isDarkMode ? 'text-slate-400' : 'text-gray-500'
-                        }`}>
-                          {expense.category} • {new Date(expense.date).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <span className={`font-semibold ${
-                      isDarkMode ? 'text-red-400' : 'text-red-600'
-                    }`}>
-                      -${expense.amount.toFixed(2)}
-                    </span>
-                  </div>
-                ))
-              ) : (
-                <div className={`text-center py-8 ${
-                  isDarkMode ? 'text-slate-400' : 'text-gray-500'
-                }`}>
-                  <p>No transactions yet. Start by adding your first expense!</p>
-                </div>
-              )}
+          {/* Loading State */}
+          {loading ? (
+            <div className="flex items-center justify-center py-16">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-cyan-500"></div>
+              <p className={`ml-4 text-lg ${
+                isDarkMode ? 'text-slate-400' : 'text-gray-500'
+              }`}>Loading your dashboard...</p>
             </div>
-          </div>
+          ) : hasExpenses ? (
+            // Dashboard with data
+            <>
+              {/* Summary Cards */}
+              <SummaryCards />
+              
+              {/* Charts */}
+              <Charts />
+              
+              {/* Recent Transactions */}
+              <div className={`
+                mt-8 rounded-2xl p-6 transition-all duration-300
+                ${isDarkMode 
+                  ? 'bg-slate-800 border border-slate-700' 
+                  : 'bg-white border border-gray-200 shadow-lg'
+                }
+              `}>
+                <h3 className={`text-lg font-semibold mb-4 ${
+                  isDarkMode ? 'text-white' : 'text-gray-900'
+                }`}>
+                  Recent Transactions
+                </h3>
+                <div className="space-y-4">
+                  {recentTransactions.map((expense) => (
+                    <div key={expense._id} className={`
+                      flex items-center justify-between p-4 rounded-xl transition-colors
+                      ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
+                    `}>
+                      <div className="flex items-center space-x-4">
+                        <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center">
+                          <span className="text-white font-semibold">💰</span>
+                        </div>
+                        <div>
+                          <p className={`font-medium ${
+                            isDarkMode ? 'text-white' : 'text-gray-900'
+                          }`}>
+                            {expense.title}
+                          </p>
+                          <p className={`text-sm ${
+                            isDarkMode ? 'text-slate-400' : 'text-gray-500'
+                          }`}>
+                            {expense.category} • {new Date(expense.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <span className={`font-semibold ${
+                        isDarkMode ? 'text-red-400' : 'text-red-600'
+                      }`}>
+                        -${expense.amount.toFixed(2)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </>
+          ) : (
+            // Empty state
+            <EmptyState />
+          )}
         </main>
       </div>
     </div>

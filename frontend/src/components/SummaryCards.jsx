@@ -7,6 +7,11 @@ const SummaryCards = () => {
   const { isDarkMode } = useTheme();
   const { expenses, stats } = useExpense();
 
+  // Don't render if no expenses
+  if (!expenses || expenses.length === 0) {
+    return null;
+  }
+
   // Calculate summary data from expenses
   const totalExpenses = expenses.reduce((sum, expense) => sum + expense.amount, 0);
   const thisMonthExpenses = expenses.filter(expense => {
@@ -50,7 +55,7 @@ const SummaryCards = () => {
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
       {cards.map((card, index) => (
         <div
           key={index}
