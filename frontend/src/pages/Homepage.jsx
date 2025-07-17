@@ -227,7 +227,7 @@ const Homepage = () => {
               </div>
               <div className="text-center">
                 <h3 className="text-2xl font-bold text-white mb-4">Pro</h3>
-                <div className="text-5xl font-bold text-white mb-2">$9</div>
+                <div className="text-5xl font-bold text-white mb-2">$3.50</div>
                 <p className="text-slate-400 mb-8">per month</p>
                 
                 <ul className="text-left space-y-4 mb-8">
