@@ -2,6 +2,7 @@ import React from 'react';
 import { Menu, Bell, Moon, Sun, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext.jsx';
 import { useTheme } from '../context/ThemeContext.jsx';
+import CurrencySelector from './CurrencySelector.jsx';
 
 const TopNavbar = ({ setSidebarOpen }) => {
   const { user } = useAuth();
@@ -39,6 +40,11 @@ const TopNavbar = ({ setSidebarOpen }) => {
 
         {/* Right side */}
         <div className="flex items-center space-x-4">
+          {/* Currency Selector */}
+          <div className="hidden sm:block">
+            <CurrencySelector />
+          </div>
+
           {/* Dark mode toggle */}
           <button
             onClick={toggleDarkMode}
@@ -87,6 +93,11 @@ const TopNavbar = ({ setSidebarOpen }) => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Currency Selector */}
+      <div className="sm:hidden px-4 pb-2">
+        <CurrencySelector />
       </div>
     </header>
   );

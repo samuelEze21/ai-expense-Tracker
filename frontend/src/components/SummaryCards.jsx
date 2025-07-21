@@ -2,10 +2,12 @@ import React from 'react';
 import { DollarSign, TrendingUp, TrendingDown, Calendar } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useExpense } from '../context/ExpenseContext.jsx';
+import { useCurrency } from '../context/CurrencyContext.jsx';
 
 const SummaryCards = () => {
   const { isDarkMode } = useTheme();
   const { expenses, stats } = useExpense();
+  const { formatAmount, selectedCurrency } = useCurrency();
 
   // Don't render if no expenses
   if (!expenses || expenses.length === 0) {
@@ -26,21 +28,21 @@ const SummaryCards = () => {
   const cards = [
     {
       title: 'Total Expenses',
-      value: `$${totalExpenses.toFixed(2)}`,
+      value: formatAmount(totalExpenses),
       icon: DollarSign,
       color: 'from-blue-500 to-cyan-500',
       change: '+12.5%'
     },
     {
       title: 'This Month',
-      value: `$${thisMonthExpenses.toFixed(2)}`,
+      value: formatAmount(thisMonthExpenses),
       icon: Calendar,
       color: 'from-green-500 to-emerald-500',
       change: '+8.2%'
     },
     {
       title: 'Daily Average',
-      value: `$${avgDaily.toFixed(2)}`,
+      value: formatAmount(avgDaily),
       icon: TrendingUp,
       color: 'from-purple-500 to-pink-500',
       change: '+15.3%'
