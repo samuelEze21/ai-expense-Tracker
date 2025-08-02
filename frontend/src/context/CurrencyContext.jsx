@@ -75,6 +75,7 @@ export const CurrencyProvider = ({ children }) => {
   
   // Update the changeCurrency function
   const changeCurrency = async (currency) => {
+    console.log('Changing currency to:', currency.code);
     setSelectedCurrency(currency);
     localStorage.setItem('selectedCurrency', JSON.stringify(currency));
     
@@ -92,13 +93,16 @@ export const CurrencyProvider = ({ children }) => {
       
       // Use the ExpenseContext directly
       if (window.updateExpenseCurrencyFilter) {
+        console.log('Calling updateExpenseCurrencyFilter with:', currency.code);
         window.updateExpenseCurrencyFilter(currency.code);
+      } else {
+        console.warn('updateExpenseCurrencyFilter not available');
       }
     } catch (error) {
       console.error('Failed to update currency preference:', error);
     }
   };
-
+  
   // Set global currency when component mounts
   useEffect(() => {
     window.selectedCurrency = selectedCurrency;
@@ -106,11 +110,12 @@ export const CurrencyProvider = ({ children }) => {
     
     // Initialize the updateExpenseCurrencyFilter function if not already set
     if (!window.updateExpenseCurrencyFilter) {
+      console.log('Setting up global updateExpenseCurrencyFilter function');
       window.updateExpenseCurrencyFilter = (code) => {
         console.log(`Currency filter updated to ${code}`);
       };
     }
-  }, [selectedCurrency]);
+  }, []);
 
   // Get currency symbol by code
   const getCurrencySymbol = (code) => {

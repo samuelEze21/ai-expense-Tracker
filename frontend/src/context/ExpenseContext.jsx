@@ -171,9 +171,9 @@ export const ExpenseProvider = ({ children }) => {
         ...filters
       });
       
-      // Remove empty values
+      // Remove empty values EXCEPT currency - we always want to filter by currency
       for (const [key, value] of params.entries()) {
-        if (!value || value === 'all') {
+        if ((!value || value === 'all') && key !== 'currency') {
           params.delete(key);
         }
       }
@@ -279,9 +279,13 @@ export const ExpenseProvider = ({ children }) => {
   }, [state.filters]); // Remove getExpenses from dependency array
 
   // Add expense
+  // Add expense
   const addExpense = async (expenseData) => {
     try {
+      console.log('Adding expense with data:', expenseData);
       const response = await axios.post('/api/expenses', expenseData);
+      
+      console.log('Expense added successfully:', response.data.data);
       
       dispatch({
         type: EXPENSE_ACTIONS.ADD_EXPENSE,
@@ -291,8 +295,15 @@ export const ExpenseProvider = ({ children }) => {
       // Refresh stats after adding
       await getExpenseStats();
       
+      // Refresh expenses with the current currency
+      if (expenseData.currency === window.selectedCurrency?.code) {
+        console.log('Refreshing expenses for current currency:', expenseData.currency);
+        getExpenses(1, { currency: expenseData.currency });
+      }
+      
       return { success: true, data: response.data.data };
     } catch (error) {
+      console.error('Error adding expense:', error);
       const message = error.response?.data?.message || 'Failed to add expense';
       dispatch({ type: EXPENSE_ACTIONS.SET_ERROR, payload: message });
       return { success: false, message, errors: error.response?.data?.errors };

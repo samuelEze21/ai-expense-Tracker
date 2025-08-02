@@ -53,12 +53,13 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDarkMode } = useTheme();
   const { expenses, loading, getExpenses, error } = useExpense();
-  const { selectedCurrency } = useCurrency(); // Move hook to top level
+  const { selectedCurrency, formatAmount } = useCurrency(); // Add formatAmount
   const navigate = useNavigate();
 
   // Load expenses when dashboard mounts or currency changes
   useEffect(() => {
     console.log('Dashboard loading expenses with currency:', selectedCurrency.code);
+    // Force a refresh with the current currency
     getExpenses(1, { currency: selectedCurrency.code });
   }, [getExpenses, selectedCurrency.code]); // Add selectedCurrency.code as dependency
 
@@ -145,7 +146,7 @@ const Dashboard = () => {
                       <span className={`font-semibold ${
                         isDarkMode ? 'text-red-400' : 'text-red-600'
                       }`}>
-                        -${expense.amount.toFixed(2)}
+                        -{formatAmount(expense.amount, expense.currency)}
                       </span>
                     </div>
                   ))}

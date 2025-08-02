@@ -40,13 +40,15 @@ const AddExpense = () => {
       addToast('Please fill in all required fields', 'error');
       return;
     }
-
+  
     const expenseData = {
       ...formData,
       amount: parseFloat(formData.amount),
       currency: selectedCurrency.code // Ensure current currency is used
     };
-
+  
+    console.log('Adding expense with currency:', expenseData.currency);
+  
     const result = await addExpense(expenseData);
     
     if (result.success) {

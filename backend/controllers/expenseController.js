@@ -38,7 +38,9 @@ const getExpenses = async (req, res) => {
       filter.currency = currency;
       console.log(`Filtering expenses by currency: ${currency} for user ${req.user.id}`);
     } else {
-      console.log(`No currency filter provided for user ${req.user.id}`);
+      // Default to NGN if no currency is provided
+      filter.currency = 'NGN';
+      console.log(`No currency filter provided, defaulting to NGN for user ${req.user.id}`);
     }
     
     // Category filter
