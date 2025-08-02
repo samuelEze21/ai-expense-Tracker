@@ -20,8 +20,8 @@ const expenseSchema = new mongoose.Schema({
   currency: {
     type: String,
     required: [true, 'Currency is required'],
-    default: 'USD',
-    enum: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'NGN', 'KES', 'GHS', 'ZAR', 'BRL', 'MXN', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK']
+    default: 'NGN', // Changed from USD to NGN as requested
+    enum: ['USD', 'NGN', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'KES', 'GHS', 'ZAR', 'BRL', 'MXN', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK']
   },
   category: {
     type: String,

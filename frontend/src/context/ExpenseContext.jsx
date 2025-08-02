@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useCallback } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useRef, useEffect } from 'react';
 import axios from 'axios';
 
 const ExpenseContext = createContext();
@@ -18,6 +18,7 @@ export const EXPENSE_CATEGORIES = [
 ];
 
 // Initial state
+// In initialState, add currency to filters - around line 20
 const initialState = {
   expenses: [],
   loading: false,
@@ -40,7 +41,8 @@ const initialState = {
     category: 'all',
     startDate: '',
     endDate: '',
-    search: ''
+    search: '',
+    currency: '' // Add currency filter
   },
   stats: {
     categoryStats: [],
@@ -140,13 +142,29 @@ const expenseReducer = (state, action) => {
 // Provider component
 export const ExpenseProvider = ({ children }) => {
   const [state, dispatch] = useReducer(expenseReducer, initialState);
+  const getExpensesRef = useRef(null);
 
   // Get expenses with filters and pagination
-  const getExpenses = useCallback(async (page = 1, customFilters = {}) => {
+  const getExpenses = useCallback(async (page = 1, customFilters = {}, retryCount = 0) => {
     try {
       dispatch({ type: EXPENSE_ACTIONS.SET_LOADING, payload: true });
       
+      // Clear any previous errors
+      dispatch({ type: EXPENSE_ACTIONS.CLEAR_ERROR });
+      
       const filters = { ...state.filters, ...customFilters };
+      
+      // Ensure currency is always set
+      if (!filters.currency && window.selectedCurrency) {
+        filters.currency = window.selectedCurrency.code;
+        console.log('Using global currency from window:', window.selectedCurrency.code);
+      } else if (!filters.currency) {
+        // Fallback to NGN if no currency is specified
+        filters.currency = 'NGN';
+        console.log('No currency specified, defaulting to NGN');
+      }
+      
+      console.log('Final filters for expense fetch:', filters);
       const params = new URLSearchParams({
         page,
         limit: 10,
@@ -160,19 +178,105 @@ export const ExpenseProvider = ({ children }) => {
         }
       }
       
-      const response = await axios.get(`/api/expenses?${params}`);
+      console.log('Fetching expenses with params:', Object.fromEntries(params.entries())); // Debug log
+      
+      // Add timeout to prevent hanging requests - increased to 15 seconds
+      const response = await axios.get(`/api/expenses?${params}`, {
+        timeout: 15000, // Increased to 15 seconds for better reliability
+        // Add retry configuration
+        retry: 2,
+        retryDelay: (retryCount) => Math.pow(2, retryCount) * 1000 // Exponential backoff
+      });
       
       dispatch({
         type: EXPENSE_ACTIONS.SET_EXPENSES,
         payload: response.data.data
       });
     } catch (error) {
-      dispatch({
-        type: EXPENSE_ACTIONS.SET_ERROR,
-        payload: error.response?.data?.message || 'Failed to fetch expenses'
-      });
+      console.error('Error fetching expenses:', error);
+      
+      // Check if it's a timeout error and we haven't retried too many times
+      if ((error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') && retryCount < 3) {
+        console.log(`Request timed out, retrying (${retryCount + 1}/3)...`);
+        // Wait a bit before retrying, with exponential backoff
+        setTimeout(() => {
+          getExpenses(page, customFilters, retryCount + 1);
+        }, 1000 * Math.pow(2, retryCount)); // 1s, then 2s, then 4s for retries
+        return;
+      }
+      
+      // For timeout or connection errors, set empty expenses instead of showing error
+      if (error.code === 'ECONNABORTED' || error.code === 'ECONNREFUSED') {
+        dispatch({
+          type: EXPENSE_ACTIONS.SET_EXPENSES,
+          payload: {
+            expenses: [],
+            pagination: {
+              current: 1,
+              pages: 1,
+              total: 0,
+              hasNext: false,
+              hasPrev: false
+            },
+            summary: {
+              totalAmount: 0,
+              avgAmount: 0,
+              maxAmount: 0,
+              minAmount: 0,
+              count: 0
+            }
+          }
+        });
+        
+        // Also set a user-friendly error message
+        dispatch({
+          type: EXPENSE_ACTIONS.SET_ERROR,
+          payload: 'Unable to connect to the server. Please check your internet connection or try again later.'
+        });
+      } else {
+        // For other errors, show the error message
+        dispatch({
+          type: EXPENSE_ACTIONS.SET_ERROR,
+          payload: error.response?.data?.message || 'Failed to fetch expenses. Please try again later.'
+        });
+      }
+    } finally {
+      dispatch({ type: EXPENSE_ACTIONS.SET_LOADING, payload: false });
     }
   }, [state.filters]);
+
+  // Store the latest version of getExpenses in a ref
+  useEffect(() => {
+    getExpensesRef.current = getExpenses;
+  }, [getExpenses]);
+
+  // Set up the global currency filter updater with proper debouncing
+  useEffect(() => {
+    let timeoutId;
+    
+    window.updateExpenseCurrencyFilter = (currencyCode) => {
+      dispatch({
+        type: EXPENSE_ACTIONS.SET_FILTERS,
+        payload: { ...state.filters, currency: currencyCode }
+      });
+      
+      // Clear any existing timeout
+      if (timeoutId) clearTimeout(timeoutId);
+      
+      // Debounce the API call to prevent multiple rapid requests
+      timeoutId = setTimeout(() => {
+        // Use the ref to access the latest version of getExpenses
+        if (getExpensesRef.current) {
+          getExpensesRef.current(1);
+        }
+      }, 250); // 250ms debounce as requested
+    };
+    
+    return () => {
+      window.updateExpenseCurrencyFilter = () => {};
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, [state.filters]); // Remove getExpenses from dependency array
 
   // Add expense
   const addExpense = async (expenseData) => {
@@ -238,19 +342,28 @@ export const ExpenseProvider = ({ children }) => {
   };
 
   // Get expense statistics
+  // Update getExpenseStats to use currency filter - around line 240
   const getExpenseStats = async () => {
     try {
-      const response = await axios.get('/api/expenses/stats');
+      const params = new URLSearchParams();
+      if (state.filters.currency) {
+        params.append('currency', state.filters.currency);
+      }
+      
+      const response = await axios.get(`/api/expenses/stats?${params}`);
       
       dispatch({
         type: EXPENSE_ACTIONS.SET_STATS,
         payload: response.data.data
       });
       
-      return { success: true, data: response.data.data };
+      return response.data.data;
     } catch (error) {
-      console.error('Failed to fetch expense stats:', error);
-      return { success: false };
+      dispatch({
+        type: EXPENSE_ACTIONS.SET_ERROR,
+        payload: error.response?.data?.message || 'Failed to fetch expense statistics'
+      });
+      return null;
     }
   };
 

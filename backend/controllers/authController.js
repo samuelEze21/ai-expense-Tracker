@@ -39,37 +39,33 @@ const registerUser = async (req, res) => {
     const user = await User.create({
       name,
       email,
-      password
+      password,
+      preferredCurrency: req.body.preferredCurrency || 'NGN' // Default to NGN if not provided
     });
-
-    if (user) {
-      res.status(201).json({
-        success: true,
-        message: 'User registered successfully',
-        data: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          token: generateToken(user._id)
-        }
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Invalid user data'
-      });
-    }
+    
+    // Include preferredCurrency in the response
+    res.status(201).json({
+      success: true,
+      message: 'User registered successfully',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        preferredCurrency: user.preferredCurrency,
+        token: generateToken(user._id)
+      }
+    });
   } catch (error) {
     console.error('Register error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during registration'
+      message: 'Server error'
     });
   }
 };
 
-// @desc    Authenticate user & get token
+// @desc    Login user
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
@@ -86,32 +82,42 @@ const loginUser = async (req, res) => {
 
     const { email, password } = req.body;
 
-    // Check for user email
+    // Find user by email
     const user = await User.findOne({ email });
-
-    if (user && (await user.comparePassword(password))) {
-      res.json({
-        success: true,
-        message: 'Login successful',
-        data: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          role: user.role,
-          token: generateToken(user._id)
-        }
-      });
-    } else {
-      res.status(401).json({
+    if (!user) {
+      return res.status(401).json({
         success: false,
-        message: 'Invalid email or password'
+        message: 'Invalid credentials'
       });
     }
+
+    // Check if password matches
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid credentials'
+      });
+    }
+
+    // Return user data with token
+    res.json({
+      success: true,
+      message: 'Login successful',
+      data: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        preferredCurrency: user.preferredCurrency,
+        token: generateToken(user._id)
+      }
+    });
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({
       success: false,
-      message: 'Server error during login'
+      message: 'Server error'
     });
   }
 };
@@ -121,19 +127,19 @@ const loginUser = async (req, res) => {
 // @access  Private
 const getUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id).select('-password');
+    const user = await User.findById(req.user.id).select('-password');
     
-    if (user) {
-      res.json({
-        success: true,
-        data: user
-      });
-    } else {
-      res.status(404).json({
+    if (!user) {
+      return res.status(404).json({
         success: false,
         message: 'User not found'
       });
     }
+    
+    res.json({
+      success: true,
+      data: user
+    });
   } catch (error) {
     console.error('Get profile error:', error);
     res.status(500).json({
@@ -148,18 +154,19 @@ const getUserProfile = async (req, res) => {
 // @access  Private
 const updateUserProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-
+    const user = await User.findById(req.user.id);
+    
     if (user) {
       user.name = req.body.name || user.name;
       user.email = req.body.email || user.email;
-
+      user.preferredCurrency = req.body.preferredCurrency || user.preferredCurrency;
+    
       if (req.body.password) {
         user.password = req.body.password;
       }
-
+    
       const updatedUser = await user.save();
-
+    
       res.json({
         success: true,
         message: 'Profile updated successfully',
@@ -168,6 +175,7 @@ const updateUserProfile = async (req, res) => {
           name: updatedUser.name,
           email: updatedUser.email,
           role: updatedUser.role,
+          preferredCurrency: updatedUser.preferredCurrency,
           token: generateToken(updatedUser._id)
         }
       });
