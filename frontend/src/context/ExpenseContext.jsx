@@ -279,7 +279,6 @@ export const ExpenseProvider = ({ children }) => {
   }, [state.filters]); // Remove getExpenses from dependency array
 
   // Add expense
-  // Add expense
   const addExpense = async (expenseData) => {
     try {
       console.log('Adding expense with data:', expenseData);
@@ -287,21 +286,22 @@ export const ExpenseProvider = ({ children }) => {
       
       console.log('Expense added successfully:', response.data.data);
       
+      // Add to local state immediately
+      const newExpense = response.data.data;
       dispatch({
         type: EXPENSE_ACTIONS.ADD_EXPENSE,
-        payload: response.data.data
+        payload: newExpense
       });
       
       // Refresh stats after adding
       await getExpenseStats();
       
-      // Refresh expenses with the current currency
-      if (expenseData.currency === window.selectedCurrency?.code) {
-        console.log('Refreshing expenses for current currency:', expenseData.currency);
-        getExpenses(1, { currency: expenseData.currency });
-      }
+      // Always refresh expenses regardless of currency
+      console.log('Refreshing expenses after adding new expense');
+      // Use the currently selected currency for the refresh
+      getExpenses(1, { currency: window.selectedCurrency?.code });
       
-      return { success: true, data: response.data.data };
+      return { success: true, data: newExpense };
     } catch (error) {
       console.error('Error adding expense:', error);
       const message = error.response?.data?.message || 'Failed to add expense';

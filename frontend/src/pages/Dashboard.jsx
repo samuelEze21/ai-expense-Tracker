@@ -53,8 +53,11 @@ const Dashboard = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { isDarkMode } = useTheme();
   const { expenses, loading, getExpenses, error } = useExpense();
-  const { selectedCurrency, formatAmount } = useCurrency(); // Add formatAmount
+  const { selectedCurrency, formatAmount } = useCurrency();
   const navigate = useNavigate();
+  
+  // Add this inside the Dashboard component
+  const [newExpenseId, setNewExpenseId] = useState(null);
 
   // Load expenses when dashboard mounts or currency changes
   useEffect(() => {
@@ -62,6 +65,17 @@ const Dashboard = () => {
     // Force a refresh with the current currency
     getExpenses(1, { currency: selectedCurrency.code });
   }, [getExpenses, selectedCurrency.code]); // Add selectedCurrency.code as dependency
+
+  // Add the URL parameter effect inside the component
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const newId = params.get('highlight');
+    if (newId) {
+      setNewExpenseId(newId);
+      // Clear the highlight after 3 seconds
+      setTimeout(() => setNewExpenseId(null), 3000);
+    }
+  }, []);
 
   // Check if user has any expenses
   const hasExpenses = expenses && expenses.length > 0;
@@ -122,10 +136,14 @@ const Dashboard = () => {
                 </h3>
                 <div className="space-y-4">
                   {recentTransactions.map((expense) => (
-                    <div key={expense._id} className={`
-                      flex items-center justify-between p-4 rounded-xl transition-colors
-                      ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
-                    `}>
+                    <div 
+                      key={expense._id} 
+                      className={`
+                        flex items-center justify-between p-4 rounded-xl transition-colors
+                        ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
+                        ${expense._id === newExpenseId ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 animate-pulse' : ''}
+                      `}
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold">💰</span>

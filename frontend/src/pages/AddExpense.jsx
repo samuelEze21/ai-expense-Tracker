@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, DollarSign, Calendar, Tag, FileText, Plus, Loader2 } from 'lucide-react';
+import { ArrowLeft, DollarSign, Calendar, Tag, FileText, Plus, Loader2, CheckCircle } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useExpense, EXPENSE_CATEGORIES } from '../context/ExpenseContext';
 import { useCurrency } from '../context/CurrencyContext';
@@ -22,8 +22,9 @@ const AddExpense = () => {
     category: '',
     date: new Date().toISOString().split('T')[0],
     description: '',
-    currency: selectedCurrency.code // Add currency to form data
+    currency: selectedCurrency.code
   });
+  const [successAnimation, setSuccessAnimation] = useState(false);
 
   // Update currency when selectedCurrency changes
   React.useEffect(() => {
@@ -51,11 +52,17 @@ const AddExpense = () => {
   
     const result = await addExpense(expenseData);
     
+    // In the handleSubmit function, update the navigation
     if (result.success) {
-      addToast('Expense added successfully!', 'success');
-      navigate('/dashboard');
+    // Show success toast
+    addToast('Expense added successfully!', 'success');
+    
+    // Navigate to dashboard with the new expense ID as a URL parameter
+    setTimeout(() => {
+      navigate(`/dashboard?highlight=${result.data._id}`);
+    }, 1000);
     } else {
-      addToast(result.message || 'Failed to add expense', 'error');
+    addToast(result.message || 'Failed to add expense', 'error');
     }
   };
 
@@ -107,11 +114,18 @@ const AddExpense = () => {
           {/* Form */}
           <div className={`
             max-w-2xl rounded-2xl p-8 transition-all duration-300
+            ${successAnimation ? 'ring-4 ring-green-500 ring-opacity-50' : ''}
             ${isDarkMode 
               ? 'bg-slate-800 border border-slate-700' 
               : 'bg-white border border-gray-200 shadow-lg'
             }
           `}>
+            {successAnimation && (
+              <div className="mb-4 p-3 bg-green-100 border border-green-200 text-green-800 rounded-lg flex items-center">
+                <CheckCircle className="w-5 h-5 mr-2" />
+                <span>Expense added successfully! Add another or return to dashboard.</span>
+              </div>
+            )}
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* Title */}
               <div>
@@ -261,28 +275,44 @@ const AddExpense = () => {
               </div>
 
               {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="
-                  w-full flex items-center justify-center px-6 py-3 bg-gradient-to-r from-cyan-500 to-purple-600
-                  text-white font-semibold rounded-xl hover:from-cyan-600 hover:to-purple-700
-                  transition-all duration-300 transform hover:scale-105 shadow-lg
-                  disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none
-                "
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Adding Expense...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="w-5 h-5 mr-2" />
-                    Add Expense
-                  </>
-                )}
-              </button>
+              <div className="flex flex-col sm:flex-row sm:justify-between gap-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`
+                    flex items-center justify-center py-3 px-6 rounded-xl text-white font-medium
+                    transition-colors duration-300 ${loading ? 'opacity-70 cursor-not-allowed' : ''}
+                    ${isDarkMode ? 'bg-cyan-600 hover:bg-cyan-700' : 'bg-cyan-500 hover:bg-cyan-600'}
+                  `}
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5 mr-2" />
+                      Add Expense
+                    </>
+                  )}
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => navigate('/dashboard')}
+                  className={`
+                    flex items-center justify-center py-3 px-6 rounded-xl font-medium
+                    transition-colors duration-300
+                    ${isDarkMode 
+                      ? 'bg-slate-700 text-white hover:bg-slate-600' 
+                      : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}
+                  `}
+                >
+                  <ArrowLeft className="w-5 h-5 mr-2" />
+                  Back to Dashboard
+                </button>
+              </div>
             </form>
           </div>
         </main>
