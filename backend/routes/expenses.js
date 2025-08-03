@@ -23,6 +23,9 @@ const expenseValidation = [
   body('category')
     .isIn(['Food & Dining', 'Transportation', 'Entertainment', 'Healthcare', 'Shopping', 'Bills & Utilities', 'Education', 'Travel', 'Personal Care', 'Other'])
     .withMessage('Invalid category selected'),
+  body('currency')
+    .isIn(['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'NGN', 'KES', 'GHS', 'ZAR', 'BRL', 'MXN', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK'])
+    .withMessage('Invalid currency selected'),
   body('date')
     .optional()
     .isISO8601()

@@ -50,10 +50,72 @@ export const CurrencyProvider = ({ children }) => {
     }
   };
 
-  const changeCurrency = (currency) => {
-    setSelectedCurrency(currency);
-    updateUserCurrency(currency);
+  // Add a function to load user's preferred currency - around line 40
+  const loadUserCurrency = async () => {
+    try {
+      const response = await axios.get('/api/auth/profile');
+      if (response.data.success && response.data.data.preferredCurrency) {
+        const userCurrency = CURRENCIES.find(
+          c => c.code === response.data.data.preferredCurrency
+        );
+        if (userCurrency) {
+          setSelectedCurrency(userCurrency);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load user currency preference:', error);
+      // Don't show error to user, just use the default from localStorage
+    }
   };
+  
+  // Call this function when the component mounts - after the useState hook
+  useEffect(() => {
+    loadUserCurrency();
+  }, []);
+  
+  // Update the changeCurrency function
+  const changeCurrency = async (currency) => {
+    console.log('Changing currency to:', currency.code);
+    setSelectedCurrency(currency);
+    localStorage.setItem('selectedCurrency', JSON.stringify(currency));
+    
+    // Make currency available globally
+    window.selectedCurrency = currency;
+    
+    try {
+      // Update user preference in backend
+      await axios.put('/api/auth/profile', {
+        preferredCurrency: currency.code
+      }).catch(err => {
+        // Silently fail if backend is not available
+        console.log('Could not update user currency preference');
+      });
+      
+      // Use the ExpenseContext directly
+      if (window.updateExpenseCurrencyFilter) {
+        console.log('Calling updateExpenseCurrencyFilter with:', currency.code);
+        window.updateExpenseCurrencyFilter(currency.code);
+      } else {
+        console.warn('updateExpenseCurrencyFilter not available');
+      }
+    } catch (error) {
+      console.error('Failed to update currency preference:', error);
+    }
+  };
+  
+  // Set global currency when component mounts
+  useEffect(() => {
+    window.selectedCurrency = selectedCurrency;
+    console.log('Global currency set to:', selectedCurrency.code);
+    
+    // Initialize the updateExpenseCurrencyFilter function if not already set
+    if (!window.updateExpenseCurrencyFilter) {
+      console.log('Setting up global updateExpenseCurrencyFilter function');
+      window.updateExpenseCurrencyFilter = (code) => {
+        console.log(`Currency filter updated to ${code}`);
+      };
+    }
+  }, []);
 
   // Get currency symbol by code
   const getCurrencySymbol = (code) => {
@@ -64,6 +126,10 @@ export const CurrencyProvider = ({ children }) => {
   // Format amount with currency
   const formatAmount = (amount, currencyCode = selectedCurrency.code) => {
     const symbol = getCurrencySymbol(currencyCode);
+    // For Naira, ensure the symbol is displayed correctly
+    if (currencyCode === 'NGN') {
+      return `₦${parseFloat(amount).toFixed(2)}`;
+    }
     return `${symbol}${parseFloat(amount).toFixed(2)}`;
   };
 

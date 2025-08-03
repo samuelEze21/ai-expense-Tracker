@@ -66,15 +66,22 @@ export const AuthProvider = ({ children }) => {
   const setAuthToken = (token) => {
     if (token) {
       axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      localStorage.setItem('token', token);
     } else {
       delete axios.defaults.headers.common['Authorization'];
+      localStorage.removeItem('token');
     }
   };
 
   // Load user
   const loadUser = async () => {
-    if (localStorage.token) {
-      setAuthToken(localStorage.token);
+    // Set token from localStorage
+    const token = localStorage.getItem('token');
+    if (token) {
+      setAuthToken(token);
+    } else {
+      dispatch({ type: 'AUTH_ERROR' });
+      return;
     }
 
     try {
@@ -84,9 +91,15 @@ export const AuthProvider = ({ children }) => {
         payload: res.data.data
       });
     } catch (err) {
+      console.error('Auth error:', err);
       dispatch({ type: 'AUTH_ERROR' });
     }
   };
+
+  // Initialize auth state when the component mounts
+  useEffect(() => {
+    loadUser();
+  }, []);
 
   // Register user
   const register = async (formData) => {

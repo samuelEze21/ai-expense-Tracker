@@ -24,6 +24,11 @@ const userSchema = new mongoose.Schema({
     type: String,
     enum: ['user', 'admin'],
     default: 'user'
+  },
+  preferredCurrency: {
+    type: String,
+    default: 'NGN',
+    enum: ['USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'INR', 'NGN', 'KES', 'GHS', 'ZAR', 'BRL', 'MXN', 'SGD', 'HKD', 'NZD', 'SEK', 'NOK']
   }
 }, {
   timestamps: true

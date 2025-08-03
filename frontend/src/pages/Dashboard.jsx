@@ -3,30 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, TrendingUp, BarChart3 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext.jsx';
 import { useExpense } from '../context/ExpenseContext.jsx';
+import { useCurrency } from '../context/CurrencyContext.jsx';
 import Sidebar from '../components/Sidebar.jsx';
 import TopNavbar from '../components/TopNavbar.jsx';
 import SummaryCards from '../components/SummaryCards.jsx';
 import Charts from '../components/Charts.jsx';
 
-const Dashboard = () => {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isDarkMode } = useTheme();
-  const { expenses, loading, getExpenses, error } = useExpense();
-  const navigate = useNavigate();
-
-  // Load expenses when dashboard mounts
-  useEffect(() => {
-    getExpenses();
-  }, [getExpenses]);
-
-  // Check if user has any expenses
-  const hasExpenses = expenses && expenses.length > 0;
-
-  // Get recent transactions (last 5)
-  const recentTransactions = expenses.slice(0, 5);
-
-  // Empty state component
-  const EmptyState = () => (
+// Move EmptyState outside Dashboard component
+const EmptyState = ({ isDarkMode, selectedCurrency, navigate }) => {
+  return (
     <div className={`
       flex flex-col items-center justify-center py-16 px-6 text-center
       ${isDarkMode ? 'text-slate-300' : 'text-gray-600'}
@@ -42,12 +27,12 @@ const Dashboard = () => {
       <h3 className={`text-2xl font-semibold mb-4 ${
         isDarkMode ? 'text-white' : 'text-gray-900'
       }`}>
-        No expenses yet
+        No expenses in {selectedCurrency.code}
       </h3>
       <p className={`text-lg mb-8 max-w-md ${
         isDarkMode ? 'text-slate-400' : 'text-gray-500'
       }`}>
-        Start tracking your expenses to see insights, charts, and analytics about your spending habits.
+        Start tracking your expenses in {selectedCurrency.code} to see insights, charts, and analytics about your spending habits.
       </p>
       <button
         onClick={() => navigate('/add-expense')}
@@ -58,10 +43,45 @@ const Dashboard = () => {
         "
       >
         <Plus className="w-5 h-5 mr-2" />
-        Add Your First Expense
+        Add Your First {selectedCurrency.code} Expense
       </button>
     </div>
   );
+};
+
+const Dashboard = () => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { isDarkMode } = useTheme();
+  const { expenses, loading, getExpenses, error } = useExpense();
+  const { selectedCurrency, formatAmount } = useCurrency();
+  const navigate = useNavigate();
+  
+  // Add this inside the Dashboard component
+  const [newExpenseId, setNewExpenseId] = useState(null);
+
+  // Load expenses when dashboard mounts or currency changes
+  useEffect(() => {
+    console.log('Dashboard loading expenses with currency:', selectedCurrency.code);
+    // Force a refresh with the current currency
+    getExpenses(1, { currency: selectedCurrency.code });
+  }, [getExpenses, selectedCurrency.code]); // Add selectedCurrency.code as dependency
+
+  // Add the URL parameter effect inside the component
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const newId = params.get('highlight');
+    if (newId) {
+      setNewExpenseId(newId);
+      // Clear the highlight after 3 seconds
+      setTimeout(() => setNewExpenseId(null), 3000);
+    }
+  }, []);
+
+  // Check if user has any expenses
+  const hasExpenses = expenses && expenses.length > 0;
+
+  // Get recent transactions (last 5)
+  const recentTransactions = expenses.slice(0, 5);
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -77,8 +97,8 @@ const Dashboard = () => {
         
         {/* Main content area */}
         <main className="p-4 sm:p-6 lg:p-8">
-          {/* Error Display */}
-          {error && (
+          {/* Only show error if it's not a timeout error */}
+          {error && !error.includes('timeout') && (
             <div className="mb-6 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
               <p>Error: {error}</p>
             </div>
@@ -116,10 +136,14 @@ const Dashboard = () => {
                 </h3>
                 <div className="space-y-4">
                   {recentTransactions.map((expense) => (
-                    <div key={expense._id} className={`
-                      flex items-center justify-between p-4 rounded-xl transition-colors
-                      ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
-                    `}>
+                    <div 
+                      key={expense._id} 
+                      className={`
+                        flex items-center justify-between p-4 rounded-xl transition-colors
+                        ${isDarkMode ? 'hover:bg-slate-700' : 'hover:bg-gray-50'}
+                        ${expense._id === newExpenseId ? 'bg-green-50 dark:bg-green-900/20 border-l-4 border-green-500 animate-pulse' : ''}
+                      `}
+                    >
                       <div className="flex items-center space-x-4">
                         <div className="w-10 h-10 bg-gradient-to-r from-cyan-500 to-purple-600 rounded-full flex items-center justify-center">
                           <span className="text-white font-semibold">💰</span>
@@ -140,7 +164,7 @@ const Dashboard = () => {
                       <span className={`font-semibold ${
                         isDarkMode ? 'text-red-400' : 'text-red-600'
                       }`}>
-                        -${expense.amount.toFixed(2)}
+                        -{formatAmount(expense.amount, expense.currency)}
                       </span>
                     </div>
                   ))}
@@ -148,8 +172,11 @@ const Dashboard = () => {
               </div>
             </>
           ) : (
-            // Empty state
-            <EmptyState />
+            <EmptyState 
+              isDarkMode={isDarkMode} 
+              selectedCurrency={selectedCurrency} 
+              navigate={navigate} 
+            />
           )}
         </main>
       </div>
