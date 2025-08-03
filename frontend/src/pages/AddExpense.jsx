@@ -44,7 +44,7 @@ const AddExpense = () => {
   
     const expenseData = {
       ...formData,
-      amount: parseFloat(formData.amount),
+      amount: Math.round(parseFloat(formData.amount) * 100) / 100, // Fix precision issues
       currency: selectedCurrency.code // Ensure current currency is used
     };
   

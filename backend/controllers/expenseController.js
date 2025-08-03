@@ -8,6 +8,18 @@ const NodeCache = require('node-cache');
 // Simple in-memory cache with 10-minute TTL
 const expenseCache = new NodeCache({ stdTTL: 600 }); // 10 minutes
 
+// Helper function to clear all cache entries for a user
+const clearUserExpenseCache = (userId) => {
+  // Get all cache keys
+  const keys = expenseCache.keys();
+  
+  // Filter keys that belong to this user and delete them
+  const userKeys = keys.filter(key => key.startsWith(`expenses_${userId}_`));
+  userKeys.forEach(key => expenseCache.del(key));
+  
+  console.log(`Cleared ${userKeys.length} cache entries for user ${userId}`);
+};
+
 // @desc    Get all expenses for user
 // @route   GET /api/expenses
 // @access  Private
@@ -153,7 +165,7 @@ const createExpense = async (req, res) => {
     const expense = new Expense({
       userId: req.user.id,
       title: title.trim(),
-      amount: parseFloat(amount),
+      amount: Math.round(parseFloat(amount) * 100) / 100, // Fix precision issues
       category,
       currency: currency || 'USD', // Extract currency from request body
       date: date ? new Date(date) : new Date(),
@@ -165,9 +177,8 @@ const createExpense = async (req, res) => {
     // Populate user data for response
     await expense.populate('userId', 'name email');
     
-    // Clear cache for this user's expenses
-    const cachePattern = `expenses_${req.user.id}_*`;
-    expenseCache.del(cachePattern);
+    // Use the helper function to clear cache for this user
+    clearUserExpenseCache(req.user.id);
     
     res.status(201).json({
       success: true,
@@ -244,7 +255,7 @@ const updateExpense = async (req, res) => {
     
     // Update expense
     expense.title = title.trim();
-    expense.amount = parseFloat(amount);
+    expense.amount = Math.round(parseFloat(amount) * 100) / 100; // Fix precision issues
     expense.category = category;
     expense.currency = currency || expense.currency; // Update currency if provided
     expense.date = date ? new Date(date) : expense.date;
@@ -253,8 +264,12 @@ const updateExpense = async (req, res) => {
     await expense.save();
     
     // Clear cache for this user's expenses
-    const cachePattern = `expenses_${req.user.id}_*`;
-    expenseCache.del(cachePattern);
+    // In updateExpense function, replace:
+    // const cachePattern = `expenses_${req.user.id}_*`;
+    // expenseCache.del(cachePattern);
+    
+    // With:
+    clearUserExpenseCache(req.user.id);
     
     // Populate user data for response
     await expense.populate('userId', 'name email');
@@ -304,7 +319,8 @@ const deleteExpense = async (req, res) => {
       });
     }
     
-    await expense.deleteOne();
+    // After await expense.deleteOne(); add:
+    clearUserExpenseCache(req.user.id);
     
     res.json({
       success: true,
